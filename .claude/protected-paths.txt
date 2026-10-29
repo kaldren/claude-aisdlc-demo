@@ -1,0 +1,2 @@
+# Never edited by Claude without an explicit request from the engineer; CI is the gate on the agent's own work.
+.github/workflows/*

@@ -5,9 +5,10 @@ A Next.js web app used to practise the AI-native SDLC end to end. Solo project; 
 @AGENTS.md
 
 ## Commands
-- All checks: `npm run check` — lint → typecheck → test → build; exits non-zero on the first failure. This is what CI runs.
+- All checks: `npm run check` — lint → typecheck → policy → test → build; exits non-zero on the first failure. This is what CI runs.
 - Lint: `npm run lint` (healthy: no output; warnings fail too)
 - Typecheck: `npm run typecheck` (runs `next typegen` first; healthy: no `error TS` lines)
+- Policy: `npm run policy` (the checks behind `.claude/skills/`; healthy: every line starts with `ok`)
 - Test: `npm test` (Vitest; healthy: `Tests  N passed`, 0 failed)
 - Build: `npm run build` (healthy: ends with the route table, e.g. `○ (Static) prerendered as static content`)
 - Run locally: `npm run dev` → http://localhost:3000

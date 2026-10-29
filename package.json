@@ -9,7 +9,8 @@
     "lint": "eslint --max-warnings 0",
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run policy && npm test && npm run build",
+    "policy": "scripts/check-api-routes.sh && scripts/check-security.sh"
   },
   "dependencies": {
     "next": "16.4.3",
