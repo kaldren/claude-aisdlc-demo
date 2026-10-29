@@ -30,8 +30,8 @@ Legend: ✅ done · 🟡 in progress/blocked · ⬜ not started · ➖ skipped (
 - ✅ GitHub Actions CI (`.github/workflows/ci.yml`) runs `npm run check` on PRs + main; Node from `.nvmrc`
 
 ### Phase 1 — Foundations
-- ⬜ P4 CLAUDE.md
-- ⬜ P8 Feedback loop (verification block, "done = tests pass with output shown")
+- ✅ P4 CLAUDE.md — 42 lines, imports Next's `AGENTS.md`; commands verified 2026-10-29
+- 🟡 P8 Feedback loop — verification block in CLAUDE.md, lint now `--max-warnings 0`; left: fresh-session test, browser MCP for UI loop
 - ⬜ P1 Intent home (`intent/`) + template
 
 ### Phase 2 — Artifact chain (pilot: /api/health)
@@ -67,6 +67,7 @@ Legend: ✅ done · 🟡 in progress/blocked · ⬜ not started · ➖ skipped (
 - 2026-10-29 — Next.js + TS on Vercel, preview deploys stand in for staging — fastest path to a real dev/prod split
 - 2026-10-29 — first skill = API/architecture — pilot is an API route
 - 2026-10-29 — `typecheck` runs `next typegen` first — Next 16 global types (`LayoutProps`) only exist after typegen
+- 2026-10-29 — lint fails on warnings (`--max-warnings 0`) — CLAUDE.md says zero warnings, tooling should enforce it
 - 2026-10-29 — kept Next's `AGENTS.md` (auto-maintained by `next dev`); CLAUDE.md will reference it
 
 ## Blockers / "You do" items outstanding
@@ -76,6 +77,7 @@ Legend: ✅ done · 🟡 in progress/blocked · ⬜ not started · ➖ skipped (
 
 ## Metrics baselines
 <!-- metric — baseline value — date — source -->
+- CLAUDE.md corrections ("Things Claude gets wrong" entries added after mistakes) — 0 — 2026-10-29 — `git log -p CLAUDE.md`
 - CI duration — 42s — 2026-10-29 — gh run 40844077617
 - CI failure rate — 0/1 runs — 2026-10-29 — `gh run list`
 
