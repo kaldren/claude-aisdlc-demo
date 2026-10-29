@@ -1,0 +1,44 @@
+# P10 — every PR gets the same three review passes (REVIEW.md). Findings never approve or block by
+# themselves; the human merges. Inputs checked against anthropics/claude-code-action@v1 examples.
+name: Claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - id: key
+        env: { KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
+        run: echo "present=$([ -n "$KEY" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v6
+        if: steps.key.outputs.present == 'true'
+        with: { fetch-depth: 1 }
+      - uses: anthropics/claude-code-action@v1
+        if: steps.key.outputs.present == 'true'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request following REVIEW.md at the repo root — read it first, and read
+            CLAUDE.md and .claude/skills/*/SKILL.md. Find the change's intent/<change>/spec.md and plan.md
+            (if the PR adds or touches one) and check the diff against them.
+            Rank findings Important / Nit, tag each with its pass (Bugs, Security, Compliance), post
+            specific issues as inline comments and one top-level summary with the severity tally:
+            "Important: N · Nit: M". Do not approve or request changes.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
