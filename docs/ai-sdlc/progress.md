@@ -4,7 +4,7 @@ Coach: `/ai-sdlc` (status: `/ai-sdlc status`, continue: `/ai-sdlc next`)
 Started: 2026-10-29
 
 ## Profile
-- Detected: empty folder, not a git repo; node 26.10, npm 11, pnpm 12, jq, git, gh (logged in as `kaldren`) available
+- Detected (at kickoff): empty folder, not a git repo; node 26.10, npm 11, pnpm 12, jq, git, gh (logged in as `kaldren`) available
 - Project state: new → Phase 0 includes git init, GitHub repo, Next.js scaffold, one passing test, minimal CI
 - Team: solo → every role is you; gates = "review the artifact before you commit it"; PR review kept (author ≠ reviewer); skip MDM managed settings, policy-owner routing, plugin marketplaces
 - Ambition: Full closed loop → roadmap runs through Phase 7
@@ -24,10 +24,10 @@ Started: 2026-10-29
 Legend: ✅ done · 🟡 in progress/blocked · ⬜ not started · ➖ skipped (reason)
 
 ### Phase 0 — Prerequisites
-- ⬜ Git repo + GitHub remote
+- ✅ Git repo + GitHub remote — https://github.com/kaldren/claude-aisdlc-demo (private)
 - ✅ jq installed
-- ⬜ Next.js + TS scaffold; one-command build / test / lint; one passing test
-- ⬜ Minimal GitHub Actions CI running lint + test + build
+- ✅ Next.js 16 + TS scaffold; `npm run lint` / `typecheck` / `test` / `build`, all-in-one `npm run check`; smoke test `src/app/page.test.tsx`
+- ✅ GitHub Actions CI (`.github/workflows/ci.yml`) runs `npm run check` on PRs + main; Node from `.nvmrc`
 
 ### Phase 1 — Foundations
 - ⬜ P4 CLAUDE.md
@@ -66,15 +66,18 @@ Legend: ✅ done · 🟡 in progress/blocked · ⬜ not started · ➖ skipped (
 - 2026-10-29 — repo-as-truth, intents in `intent/` — solo, no tracker
 - 2026-10-29 — Next.js + TS on Vercel, preview deploys stand in for staging — fastest path to a real dev/prod split
 - 2026-10-29 — first skill = API/architecture — pilot is an API route
+- 2026-10-29 — `typecheck` runs `next typegen` first — Next 16 global types (`LayoutProps`) only exist after typegen
+- 2026-10-29 — kept Next's `AGENTS.md` (auto-maintained by `next dev`); CLAUDE.md will reference it
 
 ## Blockers / "You do" items outstanding
-- [ ] Create GitHub repo (or approve me running `gh repo create`) — Kaloyan
 - [ ] (Phase 4) Add `ANTHROPIC_API_KEY` Actions secret / run `/install-github-app` — Kaloyan
 - [ ] (Phase 5) Connect repo to a Vercel project — Kaloyan
 - [ ] (Phase 7) Slack workspace + `/install-slack-app` — Kaloyan
 
 ## Metrics baselines
 <!-- metric — baseline value — date — source -->
+- CI duration — 42s — 2026-10-29 — gh run 40844077617
+- CI failure rate — 0/1 runs — 2026-10-29 — `gh run list`
 
 ## Recurring
 - Monthly: tune REVIEW.md (rate findings, cap nits) — next: after P10
