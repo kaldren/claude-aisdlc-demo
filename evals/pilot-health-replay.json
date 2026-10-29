@@ -1,0 +1,13 @@
+{
+  "id": "pilot-health-replay",
+  "source": "pilot PR (intent/2026-10-29-health-endpoint) — implementation removed, agent rebuilds it from spec + plan",
+  "requires": ["intent/2026-10-29-health-endpoint/plan.md", "src/app/api/health/route.ts"],
+  "setup": ["rm -rf src/app/api/health src/lib/health.ts src/lib/health.test.ts"],
+  "prompt": "Implement intent/2026-10-29-health-endpoint/plan.md (read spec.md beside it first). Run npm run check before finishing.",
+  "checks": [
+    "npm run check",
+    "test -f src/app/api/health/route.test.ts",
+    "test -f src/lib/health.test.ts",
+    "grep -q 'connection' src/app/api/health/route.ts"
+  ]
+}

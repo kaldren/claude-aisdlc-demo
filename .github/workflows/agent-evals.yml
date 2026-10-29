@@ -1,0 +1,29 @@
+# P9 — regression-test the agent's configuration (CLAUDE.md, REVIEW.md, skills, hooks, agents).
+name: Agent evals
+
+on:
+  pull_request:
+    paths: ['CLAUDE.md', 'REVIEW.md', 'AGENTS.md', '.claude/**', 'evals/**']
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - name: Run eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MIN_PASS_RATE: '0.8'
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY not set; skipping evals" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          npm install -g @anthropic-ai/claude-code
+          git config user.name evals; git config user.email evals@users.noreply.github.com
+          evals/run.sh 2>&1 | tee evals.log
+          { echo '```'; grep -E '^(PASS|FAIL|SKIP|  ok|  FAIL|Eval pass rate)' evals.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,11 @@
+{
+  "id": "api-time-endpoint",
+  "source": "synthetic — exercises api-conventions rule 4 (freshness) on Next 16 Cache Components",
+  "prompt": "Add GET /api/time that returns the current server time as {\"now\": \"<ISO-8601>\"}. It must be fresh on every request. Follow CLAUDE.md and the api-conventions skill. Run npm run check before finishing.",
+  "checks": [
+    "npm run check",
+    "test -f src/app/api/time/route.test.ts",
+    "grep -q 'connection' src/app/api/time/route.ts",
+    "grep -qi 'no-store' src/app/api/time/route.ts"
+  ]
+}

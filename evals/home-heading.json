@@ -1,0 +1,9 @@
+{
+  "id": "home-heading",
+  "source": "synthetic — trivial UI change; checks the agent still verifies before finishing",
+  "prompt": "Change the home page so its main heading reads 'AI-SDLC demo'.",
+  "checks": [
+    "npm run check",
+    "grep -q 'AI-SDLC demo' src/app/page.tsx"
+  ]
+}

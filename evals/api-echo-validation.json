@@ -1,0 +1,11 @@
+{
+  "id": "api-echo-validation",
+  "source": "synthetic — input validation and the error shape (api-conventions 3, 5)",
+  "prompt": "Add POST /api/echo that accepts JSON {\"message\": string, 1-200 chars} and returns {\"message\": <same>}. Anything else is a 400. Follow CLAUDE.md and the api-conventions skill. Run npm run check before finishing.",
+  "checks": [
+    "npm run check",
+    "test -f src/app/api/echo/route.test.ts",
+    "grep -rq 'invalid_request' src/app/api/echo src/lib",
+    "! grep -q 'export async function GET' src/app/api/echo/route.ts"
+  ]
+}
