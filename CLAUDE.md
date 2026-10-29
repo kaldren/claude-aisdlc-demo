@@ -23,13 +23,16 @@ A Next.js web app used to practise the AI-native SDLC end to end. Solo project; 
 ## Architecture
 - `src/app/` — routes (pages, layouts, `api/*/route.ts` handlers). Keep handlers thin.
 - `src/lib/` — framework-free logic and helpers.
-- `intent/` — the artifact chain per change. `docs/ai-sdlc/progress.md` — rollout status.
+- `intent/` — the artifact chain per change (templates `_TEMPLATE.md`, `_SPEC_TEMPLATE.md`, `_PLAN_TEMPLATE.md`).
+- `lessons/` — post-mortems; read before investigating an incident. `docs/runbooks/` — rehearsed procedures (rollback).
+- `evals/`, `monitoring/` — tests for the agent itself, and the control band that writes new intents.
 - `.github/workflows/` — CI. Don't edit without being asked; it is the gate on your own work.
 
 ## How we work (AI-SDLC)
 - Every change has `intent/<YYYY-MM-DD>-<slug>/{intent,spec,plan}.md`. Read them before working on the change.
 - Start non-trivial work in plan mode. If implementation departs from `plan.md`, update it in the same commit.
-- Small commits on a branch, PR into `main`; never push to `main` directly once branch protection is on.
+- Small commits on a branch, PR into `main` (branch protection: CI must pass; the human merges). Claude reviews every PR per REVIEW.md.
+- Before saying done on app changes, run the `verifier` subagent. Production changes go through `docs/runbooks/` and a human "go".
 
 ## Verifying your work
 Before reporting any task complete, run `npm run check` and paste the tail of its output (test summary + build route table).

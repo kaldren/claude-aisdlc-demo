@@ -1,0 +1,14 @@
+# Response tiers for the CI failure-rate control band. Version-controlled; detection stays deterministic.
+# Read by .github/workflows/control-loop.yml. Changing a tier = PR reviewed like code.
+metric: ci_test_failure_rate        # daily share of failed CI runs on PRs + main (workflow ci.yml)
+source: gh run list --workflow ci.yml
+owner: Kaloyan                      # triages the queue: fix now, schedule, or dismiss
+baseline: rolling_30d               # needs 38 days of CI history before it can trip
+rules: western_electric
+tiers:
+  1sigma: { action: log }
+  2sigma: { action: diagnose,       # Claude read-only, writes intent.md as a PR
+            tools: "Read,Grep,Glob,Write(intent/**),Bash(gh run view *),Bash(gh run list *)" }
+  3sigma: { action: propose,        # Claude may change code on a loop/ branch; the review gate decides
+            routes: [pull_request] }
+# Dismissed findings: lower sensitivity here (e.g. widen the window) and note why in the PR.

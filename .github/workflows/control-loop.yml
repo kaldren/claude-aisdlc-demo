@@ -1,0 +1,59 @@
+# P13 — closing the loop. A schedule fetches the metric, deterministic detection (monitoring/detect.py)
+# decides the tier from monitoring/bands.yaml, and only then is Claude invoked: read-only at 2σ,
+# propose-via-PR at 3σ. Output is always intent.md on a loop/ branch → PR → human triage.
+name: Control loop — CI failure rate
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch metric series
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          # Daily CI failure rate, oldest first, completed runs of ci.yml only.
+          gh run list --workflow ci.yml --limit 1000 --json conclusion,createdAt,status \
+            | jq -r 'map(select(.status=="completed")) | sort_by(.createdAt) | group_by(.createdAt[0:10]) | .[] | ((map(select(.conclusion=="failure")) | length) / length)' \
+            > series.txt
+          echo "Days of data: $(wc -l < series.txt) (band needs 38)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Detect
+        id: detect
+        run: |
+          python3 monitoring/detect.py --window 30 < series.txt | tee detect.json
+          echo "tier=$(jq -r .tier detect.json)" >> "$GITHUB_OUTPUT"
+          echo "Detection: $(cat detect.json)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Diagnose (2σ) or propose (3σ)
+        if: steps.detect.outputs.tier == '2sigma' || steps.detect.outputs.tier == '3sigma'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          TIER: ${{ steps.detect.outputs.tier }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY not set; breach logged only" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          slug="$(date +%F)-ci-failure-rate"
+          git ls-remote --exit-code origin "loop/$slug" >/dev/null && { echo "already opened today"; exit 0; }
+          npm install -g @anthropic-ai/claude-code
+          mkdir -p "intent/$slug"
+          if [ "$TIER" = "2sigma" ]; then
+            tools="$(grep -A1 '2sigma' monitoring/bands.yaml | sed -n 's/.*tools: "\(.*\)".*/\1/p')"
+            ask="Diagnose only; do not change code."
+          else
+            tools="Read,Grep,Glob,Edit,Write,Bash(gh run view *),Bash(gh run list *),Bash(npm test)"
+            ask="You may also quarantine a flaky test or prepare a revert in the working tree; the review gate decides."
+          fi
+          claude -p "The CI failure rate breached its control band: $(cat detect.json). Investigate recent failed runs with gh run list/view. $ask Write your diagnosis as intent/$slug/intent.md using intent/_TEMPLATE.md: the anomaly and its evidence, a proposed outcome, affected systems, open questions. Author: control-loop agent. Status: draft. Source: alert: monitoring/bands.yaml ci_test_failure_rate." \
+            --allowedTools "$tools"
+          git checkout -b "loop/$slug"
+          git add -A && git -c user.name="control-loop" -c user.email="control-loop@users.noreply.github.com" commit -m "intent: $slug — CI failure rate breached $TIER"
+          git push -u origin "loop/$slug"
+          gh pr create --title "Control loop: CI failure rate ($TIER)" --body "Opened by the control loop ($(cat detect.json)). Triage: fix now, schedule, or dismiss — dismissals tune monitoring/bands.yaml."
