@@ -1,0 +1,56 @@
+# P12 step 7 — automate the stage triggers. Merging an accepted intent drafts spec.md as a PR;
+# merging an accepted spec drafts plan.md (plan mode, read-only) as a PR. A human accepts each by merging.
+# Note: PRs opened with GITHUB_TOKEN don't trigger CI; push an empty commit or close/reopen to run checks.
+name: Artifact chain
+
+on:
+  push:
+    branches: [main]
+    paths: ['intent/**/intent.md', 'intent/**/spec.md']
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'intent/<change>/intent.md or spec.md to advance'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 2 }
+      - name: Advance accepted artifacts
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          INPUT_FILE: ${{ inputs.file }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY not set; skipping"; exit 0; fi
+          files="${INPUT_FILE:-$(git diff --name-only HEAD~1 HEAD -- 'intent/**/intent.md' 'intent/**/spec.md')}"
+          [ -z "$files" ] && { echo "nothing to advance"; exit 0; }
+          npm install -g @anthropic-ai/claude-code
+          git config user.name "artifact-chain"; git config user.email "artifact-chain@users.noreply.github.com"
+          for f in $files; do
+            dir=$(dirname "$f"); slug=$(basename "$dir")
+            grep -q 'Status: accepted' "$f" || { echo "$f not accepted; skip"; continue; }
+            git checkout -q main
+            case "$f" in
+              */intent.md)
+                [ -f "$dir/spec.md" ] && { echo "$dir already has spec.md"; continue; }
+                branch="spec/$slug"; git checkout -q -b "$branch"
+                claude -p "/spec-from-intent $f" --allowedTools "Read,Grep,Glob,Skill,Edit($dir/**),Write($dir/**)"
+                title="spec: $slug" ;;
+              */spec.md)
+                [ -f "$dir/plan.md" ] && { echo "$dir already has plan.md"; continue; }
+                branch="plan/$slug"; git checkout -q -b "$branch"
+                claude -p --permission-mode plan "Read $dir/intent.md, $dir/spec.md, CLAUDE.md and the code involved. Produce plan.md content using intent/_PLAN_TEMPLATE.md. Status: draft — Accepted by: pending. Output only the markdown." > "$dir/plan.md"
+                title="plan: $slug" ;;
+            esac
+            git add "$dir" && git commit -q -m "$title (drafted by artifact-chain)" || { echo "no output for $f"; continue; }
+            git push -q -u origin "$branch"
+            gh pr create --head "$branch" --title "$title" --body "Drafted by the artifact-chain workflow from \`$f\`. Review **Areas of concern** first. Accept by setting Status: accepted and merging; reject by closing."
+          done

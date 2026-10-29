@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -15,4 +19,23 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run check
+      - name: npm run check
+        shell: bash # -eo pipefail, so tee doesn't hide a failure
+        run: npm run check 2>&1 | tee check.log
+      - name: Control-band detector tests
+        run: python3 -m unittest discover -s monitoring
+
+      # P12 step 1 — read-only judgment: Claude triages the failure, never fixes it here.
+      - name: Triage failure (read-only)
+        if: failure()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY not set; skipping triage"; exit 0; fi
+          npm install -g @anthropic-ai/claude-code
+          claude -p "Read check.log (output of npm run check). Identify the most likely cause, say whether it looks flaky or real, and point at the file and line. Answer in at most five lines of markdown." \
+            --allowedTools "Read,Grep,Glob" > triage.md || echo "Triage run failed." > triage.md
+          { echo "### Claude triage"; cat triage.md; } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$PR" ]; then gh pr comment "$PR" --body-file <(echo "**CI failed — Claude triage (read-only)**"; echo; cat triage.md); fi
